@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"io/ioutil"
-	//"strconv"
 )
 
 func main() {
@@ -13,27 +12,31 @@ func main() {
 	if err != nil {
 		//nop	
 	}
-	var trees, move int	
+	var trees int	
 	var crBool = false
-	bytesLen := len(bs)	
-	for i := 0; i < bytesLen; {
+	fileBytes := len(bs)	
+	//walk the array, simulating "downward" movement by jumping a line's worth of bytes ahead	
+	for i := 0; i < fileBytes; {
 		//reset end-of-line flag
 		crBool = false
-		for j := 1; j < 4 && i < bytesLen; j++ {
+		//all of this is to track whether or not we should wrap an entire line
+		for j := 1; j < 4 && i < fileBytes; {
 			i++
+			j++
 			//we're crossing a line feed
-			if i < bytesLen && bs[i] == 10 {
+			if i < fileBytes && bs[i] == 10 {
 				crBool = true
+				//lf isn't on the "map", so make an extra move
+				i++
 			}
 		}
 		//if we didn't cross a line boundary
 		if !crBool {
 			i += 32
 		}
-		if i < bytesLen && bs[i] == 35 {
+		if i < fileBytes && bs[i] == 35 {
 			trees++
 		}
-		if i < bytesLen { fmt.Println("move: ", move, "; i: ", i, "; bs[i]: ", fmt.Sprintf("%c", bs[i])) }
 	}
 	fmt.Println("Trees: ", trees)
 }
