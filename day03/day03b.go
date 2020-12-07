@@ -6,34 +6,38 @@ import (
 	"io/ioutil"
 )
 
+//nb: each line in input is 32 chars with line feed
 func GetTrees( moves [2]int, treesArr *[5]int, ix int, byteSlice []byte) {
 	right := moves[0]
 	down := moves[1]
 	var trees int	
-	var crBool = false
+	var lfFlag = false
 	fileBytes := len(byteSlice)
-	//DEBUG
-	fmt.Println("fileBytes: ", fileBytes)	
-	
+
 	//walk the array, simulating "downward" movement by jumping a line's worth of bytes ahead	
 	for i := 0; i < fileBytes; {
 		//reset end-of-line flag
-		crBool = false
+		lfFlag = false
 		//all of this is to track whether or not we should wrap an entire line
 		for j := 1; j <= right && i < fileBytes; {
 			i++
 			j++
 			//we're crossing a line feed
 			if i < fileBytes && byteSlice[i] == 10 {
-				crBool = true
+				lfFlag = true
 				//lf isn't on the "map", so make an extra move
 				i++
 			}
 		}
 		//if we didn't cross a line boundary
-		if !crBool {
-			i += 32*down
+		//we did cross a line boundary, but b/c of multiple downward moves, we still must increment
+		//by a factor of 32
+		if !lfFlag {
+			i += (32 * down) 
+		} else if lfFlag && down > 1 {
+			i += ( 32 * (down - 1) )
 		}
+
 		if i < fileBytes && byteSlice[i] == 35 {
 			trees++
 		}
@@ -54,7 +58,7 @@ func main() {
 
 	for i, t := range movesArr {
 		GetTrees(t, &treesArr, i, bs)
-		fmt.Println("Trees ", i, ": ", treesArr[i])
+		fmt.Println("Trees", i, ":", treesArr[i])
 	}
 
 	var treeProduct = func(treesArr *[5]int) int {
@@ -62,7 +66,6 @@ func main() {
 		for i:=0; i<len(treesArr); i++ {
 			prod *= treesArr[i]	
 		}
-		fmt.Println("prod: ", prod)
 		return prod
 	}
 
