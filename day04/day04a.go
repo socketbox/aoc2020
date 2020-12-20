@@ -1,69 +1,74 @@
 package main
 
 import (
-	"os"
-	"io"	
-	"io/ioutil"
-	"fmt"
 	"bufio"
-	//"bytes"
+	"strings"	
+	"fmt"
+	"log"	
+	"os"
 )
 
-type Passport struct {
-	byr		int
-	iyr		int
-	eyr		int
-	hgt		string
-	hcl		string
-	ecl		string
-	pid		string
-	cid		string
-}
+type PassportMask uint8 
 
-func parsePassports(bs []byte) (passPorts []Passport) {
-	var adv int
-	var textBs []byte
-	var err error
-	var rawPport [][]byte
-	//var rawPport = make( [][]byte, 4, 8) 
-	for i := 0; err == nil && i < 250 && i < len(bs); {
-		adv, textBs, err = bufio.ScanLines(bs[i:], true)
-		if len(textBs) > 0 { 
-			rawPport = append(rawPport, textBs)	
-			fmt.Println("rawPport", i, ":", rawPport)	
-		} else {
-			fmt.Println("to makePassport")	
-			var pPort Passport = makePassport(rawPport)
-			passPorts = append(passPorts, pPort)	
-			rawPport = nil
-		}
-		i += adv
-	}
-	return passPorts
-}
+const (
+	byr	= 1 << iota	
+	iyr		
+	eyr		
+	hgt		
+	hcl		
+	ecl		
+	pid		
+	cid //128	
+)
 
-func makePassport(rawPp [][]byte) (pp Passport) {
-	var rd *Reader = new Reader()
-	var err error 
-	for i := 0; i < len(rawPp); i++ {
-		fmt.Println("rawPp len:", len(rawPp))
-		rz := bufio.NewReaderSize(rd, len(rawPp[i]))
-		err = nil
-		var field []byte
-		for ; err == nil; {
-			field, err = rz.ReadBytes(' ')
-			fmt.Println(string(field))
+
+func checkPassp(rawPp []string) (valid bool) {
+	var ppm PassportMask	
+	for _, str := range rawPp {
+		strArr := strings.Split(str, " ")
+		for _, ppField := range strArr {
+			fields := strings.Split(ppField, ":")
+			switch fields[0] {
+				case "byr": ppm = ppm | byr
+				case "iyr": ppm = ppm | iyr 
+				case "eyr": ppm = ppm | eyr 
+				case "hgt": ppm = ppm | hgt
+				case "hcl": ppm = ppm | hcl
+				case "ecl": ppm = ppm | ecl
+				case "pid": ppm = ppm | pid 
+				case "cid": ppm = ppm | cid
+			}
+			println("fields[0]", fields[0], "ppm:", ppm)
 		}
 	}
-	return pp 
+	return (ppm == 255 || ppm == 127)
 }
 
 func main() {
-	fileName := os.Args[1]
-	bs, err := ioutil.ReadFile(fileName) 
+	r, err := os.Open(os.Args[1])
 	if err != nil {
-		//nop	
+		log.Fatal("Can't open file arg")	
+	}	
+	scnr := bufio.NewScanner(r)
+	//scnr.Whitespace ^= 1 << "\r" | 1 << " "	
+	var rawPassp []string	
+	var valid int	
+	for scnr.Scan() {
+		ln := scnr.Text()
+		if len(ln) > 0 {
+			rawPassp = append(rawPassp, ln)
+		} else {
+			if checkPassp(rawPassp) {
+				valid++
+			}
+			rawPassp = nil
+		}
 	}
-	var passPorts []Passport = parsePassports(bs)
-	fmt.Println(&passPorts)
+	if rawPassp != nil {
+		if checkPassp(rawPassp) {
+			valid++
+		}
+	}
+	fmt.Println("Valid:", valid)
 }
+
